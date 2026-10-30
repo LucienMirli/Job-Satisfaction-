@@ -1,0 +1,153 @@
+le package ‘dplyr’ a été décompressé et les sommes MD5 ont été vérifiées avec succés
+Warning in install.packages :
+  impossible de supprimer l'installation précédente du package ‘dplyr’
+Warning in install.packages :
+  problème lors de la copie de C:\Users\lmirl\AppData\Local\R\win-library\4.4\00LOCK\dplyr\libs\x64\dplyr.dll vers C:\Users\lmirl\AppData\Local\R\win-library\4.4\dplyr\libs\x64\dplyr.dll : Permission denied
+Warning in install.packages :
+  ‘dplyr’ restauré
+
+Les packages binaires téléchargés sont dans
+	C:\Users\lmirl\AppData\Local\Temp\Rtmpe44UO8\downloaded_packages
+[1] 1.954428
+[1] 1.951449
+[1] 1.931643
+
+	Welch Two Sample t-test
+
+data:  bdd_A_salary$Job_Satisfaction and bdd_DK_salary$Job_Satisfaction
+t = 0.12393, df = 1450.5, p-value = 0.9014
+alternative hypothesis: true difference in means is not equal to 0
+95 percent confidence interval:
+ -0.04417508  0.05013312
+sample estimates:
+mean of x mean of y 
+ 1.954428  1.951449 
+
+
+	Welch Two Sample t-test
+
+data:  bdd_A_salary$Job_Satisfaction and bdd_RR_salary$Job_Satisfaction
+t = 1.4691, df = 5517.9, p-value = 0.1419
+alternative hypothesis: true difference in means is not equal to 0
+95 percent confidence interval:
+ -0.007619722  0.053189069
+sample estimates:
+mean of x mean of y 
+ 1.954428  1.931643 
+
+
+	Welch Two Sample t-test
+
+data:  bdd_RR_salary$Job_Satisfaction and bdd_DK_salary$Job_Satisfaction
+t = -0.72491, df = 2316.6, p-value = 0.4686
+alternative hypothesis: true difference in means is not equal to 0
+95 percent confidence interval:
+ -0.07338313  0.03377182
+sample estimates:
+mean of x mean of y 
+ 1.931643  1.951449 
+
+le package ‘VIM’ a été décompressé et les sommes MD5 ont été vérifiées avec succés
+Warning in install.packages :
+  impossible de supprimer l'installation précédente du package ‘VIM’
+Warning in install.packages :
+  problème lors de la copie de C:\Users\lmirl\AppData\Local\R\win-library\4.4\00LOCK\VIM\libs\x64\VIM.dll vers C:\Users\lmirl\AppData\Local\R\win-library\4.4\VIM\libs\x64\VIM.dll : Permission denied
+Warning in install.packages :
+  ‘VIM’ restauré
+
+Les packages binaires téléchargés sont dans
+	C:\Users\lmirl\AppData\Local\Temp\Rtmpe44UO8\downloaded_packages
+Error in install.packages : Updating loaded packages
+[1] 21516
+[1] 19904
+Error in install.packages : Updating loaded packages
+Warning in install.packages :
+  le package ‘Hmisc’ est en cours d'utilisation et ne sera pas installé
+Warning in install.packages :
+  le package ‘DescTools’ est en cours d'utilisation et ne sera pas installé
+Error in install.packages : Updating loaded packages
+   Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+  15.00   34.00   44.00   43.33   52.00   87.00 
+   Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+   1.00   35.00   40.00   37.57   40.00  120.00 
+   Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+   0.00   32.00   40.00   53.86   40.00  999.00 
+   Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+  5.525   6.421   7.091   6.980   7.538   8.517 
+   Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+  0.000   3.000   3.000   3.737   5.000  88.000 
+Length  Class   Mode 
+     0   NULL   NULL 
+
+    0     1 
+ 4093 15811 
+
+    0     1 
+ 4971 14933 
+
+    0     1 
+ 7897 12007 
+
+    0     1 
+ 6034 13870 
+
+    1     2     3     4 
+  537  2468 11820  5079 
+
+   1    2    3    4    5 
+4428 3394 4482 4756 2844 
+Warning in install.packages :
+  le package ‘ggplot2’ est en cours d'utilisation et ne sera pas installé
+le package ‘ordinal’ a été décompressé et les sommes MD5 ont été vérifiées avec succés
+
+Les packages binaires téléchargés sont dans
+	C:\Users\lmirl\AppData\Local\Temp\Rtmpe44UO8\downloaded_packages
+le package ‘stargazer’ a été décompressé et les sommes MD5 ont été vérifiées avec succés
+
+Les packages binaires téléchargés sont dans
+	C:\Users\lmirl\AppData\Local\Temp\Rtmpe44UO8\downloaded_packages
+formula: 
+Job_Satisfaction ~ Sex + Age + Full_Time + Private + Monotonous + Complex_Tasks + Learning + Career + Work_Hours + Salary_log + Mismatch_hours
+data:    base_complete
+
+
+Coefficients:
+                Estimate Std. Error z value Pr(>|z|)    
+Sex1            0.149681   0.030495   4.908 9.18e-07 ***
+Age             0.006573   0.001251   5.254 1.49e-07 ***
+Full_Time      -0.036602   0.044825  -0.817   0.4142    
+Private1        0.056834   0.034295   1.657   0.0975 .  
+Monotonous1    -0.416062   0.029614 -14.049  < 2e-16 ***
+Complex_Tasks1 -0.145322   0.032653  -4.451 8.57e-06 ***
+Learning1       0.185436   0.035661   5.200 1.99e-07 ***
+Career2         0.446787   0.047347   9.436  < 2e-16 ***
+Career3         0.897595   0.045054  19.923  < 2e-16 ***
+Career4         1.237702   0.046128  26.832  < 2e-16 ***
+Career5         2.259898   0.054099  41.774  < 2e-16 ***
+Work_Hours     -0.009853   0.001546  -6.374 1.85e-10 ***
+Salary_log      0.229836   0.020602  11.156  < 2e-16 ***
+Mismatch_hours -0.521900   0.029932 -17.436  < 2e-16 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Threshold coefficients:
+    Estimate Std. Error z value
+1|2  -1.7900     0.1671  -10.71
+2|3   0.1763     0.1631    1.08
+3|4   3.3721     0.1655   20.38
+[1] "NULL"
+[1] 0
+NULL
+[1] 19904
+[1] "NULL"
+[1] 0
+NULL
+[1] 19904
+[1] 6
+CHUNK OK
+CHUNK OK
+[1] "test print"
+test cat
+[1] "hello"
+hello
+[1] 2

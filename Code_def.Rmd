@@ -1,0 +1,805 @@
+---
+title: "Code"
+author: "BARCAROLI Clément LAHAY Rémi MIRLICOURTOIS Lucien NAJI Anas"
+date: "2025-02-24"
+Rversion: "4.4.2"
+output:
+  pdf_document:
+---
+
+# I) Import
+
+```{r}
+sink("logfile.txt")
+```
+
+```{r}
+chemin_fichier <- file.path(getwd(), "Bases", "data_job_satisfaction.csv")
+brut_data <- read.csv(chemin_fichier, sep=',')
+```
+
+# II) Data Cleaning
+
+## 1) Cleaning the data set
+
+We want to create a data set only with the variables we will work with.
+
+First, we stock the name of the variables we want in a vector
+
+```{r}
+#We stock the variables in a vector
+liste_var<-c("y15_Q2c","y15_Q2a", "y15_Q2b", "y15_Q2d", "y15_Q14_lt", "y15_Q24", "y15_Q25" , "y15_Q24 - Y15_Q25", "y15_Q36", "y15_Q53d", "y15_Q53e", "y15_Q53f", "y15_Q88", "y15_Q89b", "y15_Q104_euro", "y15_ISCED_lt","y15_Q61j", "y15_Q89a", "y15_Q101f", "y15_Q18b", "y15_Q89d", "y15_Q61a", "y15_Q70e", "y15_Q63d", "y15_Q61b", "y15_Q63e")
+
+#We stock the names for each variables
+names_var<-c("Job_Statute", "Sex", "Age", "Full_Time", "Private",  "Work_Hours", "Hours_Wanted" , "Mismatch_hours", "Travel_time", "Monotonous","Complex_Tasks", "Learning", "Job_Satisfaction", "Career", "Salary", "Education","Useful_Work" ,"Appropriately_Paid", "Payment_Individual", "Promo", "Relation", "Support_Colleagues","Cooperation_Colleagues", "Competent_Sup", "Support_Manager","Sup_Useful_Comp")
+
+
+
+```
+
+Then we filter to create a new data set.
+
+```{r}
+base_partial <- brut_data[, match(liste_var, names(brut_data), nomatch = 0)]
+```
+
+The name of the variables isn't quite readable, so we will rename them into something more pragmatical
+
+```{r}
+# We create a database with only our interest variables in the desired order
+code_to_name <- data.frame(code_var = c("y15_Q2c","y15_Q2a", "y15_Q2b", "y15_Q2d", "y15_Q14_lt", "y15_Q24", "y15_Q25" , "y15_Q36", "y15_Q53d", "y15_Q53e", "y15_Q53f", "y15_Q88", "y15_Q89b", "y15_Q104_euro", "y15_ISCED_lt","y15_Q61j", "y15_Q89a", "y15_Q101f", "y15_Q18b", "y15_Q89d", "y15_Q61a", "y15_Q70e", "y15_Q63d", "y15_Q61b", "y15_Q63e"),name_var = c("Job_Statute", "Sex", "Age", "Full_Time", "Private",  "Work_Hours", "Hours_Wanted" , "Travel_time", "Monotonous","Complex_Tasks", "Learning", "Job_Satisfaction", "Career", "Salary", "Education","Useful_Work" ,"Appropriately_Paid", "Payment_Individual", "Promo", "Relation", "Support_Colleagues","Cooperation_Colleagues", "Competent_Sup", "Support_Manager","Sup_Useful_Comp"))
+
+
+#Loop to rename
+names(base_partial) <- sapply(names(base_partial), function(col) {
+  if (col %in% code_to_name$code_var) {
+    return(code_to_name$name_var[code_to_name$code_var == col])
+  } else {
+    return(col)
+  }
+})
+```
+
+This study concerns job satisfaction, so we need to remove all the observations related to non-working people. We also create a new variable Mismatch_hours
+
+```{r}
+#We keep only the people that are working
+base_partial <- base_partial[base_partial$`Job_Statute` %in% c(1,4), ]
+#We create the variable Mismatch_hours
+base_partial$Mismatch_hours <- base_partial$Work_Hours - base_partial$Hours_Wanted
+
+```
+
+Some questions ( variables ) were associated to a refusal of responses or an inability to respond.
+
+We need to correct that
+
+```{r}
+## We create three datasets according to the type of responses to the Salary
+
+# Dataset of people who respond to the question of Salary
+bdd_A_salary = base_partial[base_partial$Salary != 88888888 & base_partial$Salary != 99999999  , ]
+
+# Dataset of people who declare that they don't know their salary
+bdd_DK_salary = base_partial[base_partial$Salary == 88888888,]
+
+# Dataset of people who refuse to awnser the question of salary
+bdd_RR_salary = base_partial[base_partial$Salary == 99999999,]
+
+#We create a list of non-response values
+values_no_responses <- list(
+  "Age" = c(888,999),
+  "Sex" = c(8, 9),
+  "Full_Time" = c(8, 9),
+  "Private" = c(9),
+  "Work_Hours" = c(888, 999),
+  "Hours_wanted" = c(888, 999),
+  "Travel_time" = c(777, 888, 999),
+  "Monotonous" = c(8, 9),
+  "Complex_Tasks" = c(8, 9),
+  "Learning" = c(8, 9),
+  "Job_Satisfaction" = c(8, 9),
+  "Career" = c(7, 8, 9),
+  "Salary" = c(88888888, 99999999),
+  
+  "Useful_Work" = c(7,8,9),
+  "Appropriately_Paid" = c(7,8, 9),
+  "Payment_Individual" = c(8,9),
+  "Promo" = c(8,9),
+  "Relation" = c(7,8,9),
+  "Support_Colleagues" = c(7,8, 9),
+  "Cooperation_Colleagues" = c(7,8, 9),
+  "Competent_Sup"=c(7,8, 9),
+  "Support_Manager"=c(7,8, 9),
+  "Sup_Useful_Comp"=c(7,8, 9)
+)
+
+# We create a loop to replace these values with a NAs
+for (col in names(values_no_responses)) {
+  if (col %in% colnames(base_partial)) {
+    base_partial[[col]][base_partial[[col]] %in% values_no_responses[[col]]] <- NA
+  }
+}
+```
+
+We will change the encoding for some of the variables to make it more understandable
+
+```{r}
+install.packages("dplyr")
+library(dplyr)
+## Sex
+#1 meant man and 2 women , we want 0 to be man and 1 woman 
+base_partial <- base_partial %>% mutate(Sex =  Sex - 1)
+
+## Monotonous
+#We want 2 to become 0 and 1 to remain  1
+base_partial <- base_partial %>% mutate(Monotonous = 2 - Monotonous)
+
+## Learning 
+#We want 2 to become 0 and 1 to remain  1
+base_partial <- base_partial %>% mutate(Learning = 2 -Learning)
+
+## Complex Tasks 
+#We want 2 to become 0 and 1 to remain  1
+base_partial <- base_partial %>% mutate(Complex_Tasks = 2- Complex_Tasks)
+
+##Carrer
+# As we encoutered with the job satisfaction, we want ton invert the encoding 
+base_partial <- base_partial%>% mutate(Career = 6 - Career)
+
+##Salary 
+# We chose to work with a log-salary instead of a salary
+base_partial$Salary_log <- log(base_partial$Salary + 1)
+
+##Full_Time
+#Same thing as we did with Learning
+base_partial$Full_Time <- base_partial$Full_Time - 1
+
+##Private
+base_partial$Private <- ifelse(base_partial$Private == 2, 0, base_partial$Private)
+
+##Job Satisfaction
+base_partial <-base_partial %>% mutate(Job_Satisfaction = 5- Job_Satisfaction)
+
+#Useful_Work
+base_partial <-base_partial %>% mutate(Useful_Work = 6- Useful_Work)
+
+#Appropriatley_Paid
+base_partial <-base_partial %>% mutate(Appropriately_Paid = 6- Appropriately_Paid)
+
+#Payment_Individual
+base_partial <-base_partial %>% mutate(Payment_Individual = 2- Payment_Individual)
+
+#Promo
+base_partial <-base_partial %>% mutate(Promo = 6- Promo)
+
+#Relation
+base_partial <-base_partial %>% mutate(Relation = 6- Relation)
+
+#Support_Colleagues
+base_partial <-base_partial %>% mutate(Support_Colleagues = 6- Support_Colleagues)
+
+#Cooperation_Colleagues
+base_partial <-base_partial %>% mutate(Cooperation_Colleagues = 6- Cooperation_Colleagues)
+
+#Competent_Sup
+base_partial <-base_partial %>% mutate(Competent_Sup = 6- Competent_Sup)
+
+#Support_Manager
+base_partial <-base_partial %>% mutate(Support_Manager = 6- Support_Manager)
+
+#Sup_Useful_Comp
+base_partial <-base_partial %>% mutate(Sup_Useful_Comp = 6- Sup_Useful_Comp)
+
+#Mismatch hours
+base_partial <- base_partial %>% mutate(Mismatch_hours = ifelse(Mismatch_hours == 0, 0, 1))
+
+```
+
+## 2) Hot deck imputation & Winsorization
+
+We want to implement a hot deck. This method will allow us to replace the" NA's " by adequate values.
+
+#### a) Preparatory work
+
+To implement the hot deck we first need to check if there's no issues regarding the variable salary, travel time,career,private and job satisfaction. We need to see if there's not to much difference in terms of job satisfaction between people that answered , didn't answer and those who did not know.
+
+```{r}
+#First we compute the means 
+mean(bdd_A_salary$Job_Satisfaction)
+mean(bdd_DK_salary$Job_Satisfaction)
+mean(bdd_RR_salary$Job_Satisfaction)
+
+#Then we check if there's no big difference in term of means for each category
+t.test(bdd_A_salary$Job_Satisfaction,bdd_DK_salary$Job_Satisfaction) 
+t.test(bdd_A_salary$Job_Satisfaction,bdd_RR_salary$Job_Satisfaction) 
+t.test(bdd_RR_salary$Job_Satisfaction,bdd_DK_salary$Job_Satisfaction)
+```
+
+#### b) Implementation
+
+Now that we checked we can pop the salary variable and only care about the log-salary
+
+```{r}
+base_partial <- base_partial[, !names(base_partial) %in% "Salary"]
+```
+
+We export this base
+
+```{r}
+write.csv(base_partial, file = "Bases/base_partial.csv", row.names = FALSE)
+```
+
+Then we implement the hotdeck imputation method.
+
+```{r}
+install.packages("VIM")
+library(VIM)
+base_complete=hotdeck(base_partial,variable<-c("Salary_log","Travel_time","Career","Private","Payment_Individual","Cooperation_Colleagues","Competent_Sup","Support_Manager","Sup_Useful_Comp","Career","Support_Colleagues","Relation"),ord_var<-setdiff(colnames(base_partial), c("Salary_log","Travel_time","Career","Private","Payment_Individual","Cooperation_Colleagues","Competent_Sup","Support_Manager","Sup_Useful_Comp","Career","Support_Colleagues","Relation")),imp_var=FALSE
+)
+```
+
+To contain the possible extreme values for some variable we implement the winsorization method
+
+```{r}
+install.packages("DescTools")
+library('DescTools')
+base_complete$Salary_log = Winsorize(base_complete$Salary_log,val = quantile(base_complete$Salary_log, probs=c(0.05,0.99),na.rm=TRUE))
+```
+
+Then we remove the remaining NAs
+
+```{r}
+# We remove the remaining NAs as they are negligibles
+nrow(base_complete)
+base_complete = na.omit(base_complete)
+nrow(base_complete)
+```
+
+To finish we put labels
+
+```{r}
+install.packages("Hmisc")
+library(Hmisc)
+
+label(base_complete$Job_Statute) <- "Currently employed (0 = No, 1 = Yes)"
+label(base_complete$Sex) <- "Gender of the individual (0 = Male, 1 = Female)"
+label(base_complete$Age) <- "Age of the individual"
+label(base_complete$Full_Time) <- "Full-time work (1 = Yes, 0 = No)"
+label(base_complete$Private) <- "Private sector (1 = Yes, 0 = No)"
+label(base_complete$Work_Hours) <- "Number of hours worked per week"
+label(base_complete$Travel_time) <- "minutes per day spend travelling from home to work"
+label(base_complete$Monotonous) <- "Work involves monotonous tasks (1 = Yes, 0 = No)"
+label(base_complete$Complex_Tasks) <- "Work involves complex tasks (1 = Yes, 0 = No)"
+label(base_complete$Learning) <- "Work involves learning new things (1 = Yes, 0 = No)"
+label(base_complete$Job_Satisfaction) <- "Job satisfaction (1 = Not at all satisfied, 2 = Not very satisfied, 3 = Satisfied, 4 = Very satisfied"
+label(base_complete$Career) <- "Prospects for career advancement (1 = Very low, 2 = Low, 3 = Moderate, 4 = High, 5 = Very high)"
+label(base_complete$Salary) <- "Net monthly earnings  (in euros)"
+label(base_complete$Education) <- "Highest level of education completed (0 = Pre-primary education, 1 = Primary education or first stage of basic education, 2 = Lower secondary or second stage of basic education, 3 = (Upper) secondary education, 4 = Post-secondary non-tertiary education, 5 = First stage of tertiary education, 6 = Second stage of tertiary education"
+label(base_complete$Support_Colleagues) <- "Support from colleagues (1= Never, 2 = Rarely, 3 = Sometimes, 4 = Most of the times, 5 = Always)"
+label(base_complete$Cooperation_Colleagues) <- "Cooperation among colleagues (1 = Very low, 2 = Low, 3 = Moderate, 4 = High, 5 = Very high)"
+label(base_complete$Competent_Sup) <- "Competence of the supervisor (1 = Strongly disagree, 2= Tend do disagree, 3 = Neither agree nor disagree, 4 = Tend to agree, 5 = Strongly agree)"
+label(base_complete$Support_Manager) <- "Support from manager (1= Never, 2 = Rarely, 3 = Sometimes, 4 = Most of the times, 5 = Always)"
+label(base_complete$Sup_Useful_Comp) <- "Supervisor perceived as useful to the company (1 = Strongly disagree, 2= Tend do disagree, 3 = Neither agree nor disagree, 4 = Tend to agree, 5 = Strongly agree)"
+label(base_complete$Mismatch_hours) <- "Job implies a mismatch in hours worked (0 = No, 1 = Yes)"
+label(base_complete$Useful_Work) <- "The feeling of doing usefull work (1 = Very low, 2 = Low, 3 = Moderate, 4 = High, 5 = Very high"
+label(base_complete$Appropriately_Paid) <- "The feeling of being appropriately paid 1 = Very low, 2 = Low, 3 = Moderate, 4 = High, 5 = Very high"
+label(base_complete$Payment_Individual) <- "Payment based on individual performance (0 = No, 1 = Yes)"
+label(base_complete$Promo) <- "Change in salary  (1=Decreased a lot 2= Decreased a little , 3= No change , 4= Increased a little , 5 = Increased a lot)"
+label(base_complete$Relation) <- " State of relationship with colleagues(1 = Very low, 2 = Low, 3 = Moderate, 4 = High, 5 = Very high)"
+label(base_complete$Salary_log) <- " Log of the salary"
+label(base_complete$Hours_Wanted) <-"Number of worked hours wanted per week"
+
+attr(base_complete, "model.varnames") <- c("Currently employed (0 = No, 1 = Yes)", "Gender of the individual (0 = Male, 1 = Female)", "Age of the individual", "Full-time work (1 = Yes, 0 = No)", "Private sector (1 = Yes, 0 = No)", "Number of hours worked per week", "minutes per day spend travelling from home to work", "Work involves monotonous tasks (1 = Yes, 0 = No)", "Work involves complex tasks (1 = Yes, 0 = No)", "Work involves learning new things (1 = Yes, 0 = No)", "Job satisfaction (1 = Not at all satisfied, 2 = Not very satisfied, 3 = Satisfied, 4 = Very satisfied", "Prospects for career advancement (1 = Very low, 2 = Low, 3 = Moderate, 4 = High, 5 = Very high)", "Net monthly earnings (in euros)", "Highest level of education completed (0 = Pre-primary education, 1 = Primary education or first stage of basic education, 2 = Lower secondary or second stage of basic education, 3 = (Upper) secondary education, 4 = Post-secondary non-tertiary education, 5 = First stage of tertiary education, 6 = Second stage of tertiary education", "Support from colleagues (1= Never, 2 = Rarely, 3 = Sometimes, 4 = Most of the times, 5 = Always)", "Cooperation among colleagues (1 = Very low, 2 = Low, 3 = Moderate, 4 = High, 5 = Very high)", "Competence of the supervisor (1 = Strongly disagree, 2= Tend do disagree, 3 = Neither agree nor disagree, 4 = Tend to agree, 5 = Strongly agree)", "Support from manager (1= Never, 2 = Rarely, 3 = Sometimes, 4 = Most of the times, 5 = Always)", "Supervisor perceived as useful to the company (1 = Strongly disagree, 2= Tend do disagree, 3 = Neither agree nor disagree, 4 = Tend to agree, 5 = Strongly agree)", "Job implies a mismatch in hours worked (0 = No, 1 = Yes)", "The feeling of doing useful work (1 = Very low, 2 = Low, 3 = Moderate, 4 = High, 5 = Very high", "The feeling of being appropriately paid (1 = Very low, 2 = Low, 3 = Moderate, 4 = High, 5 = Very high)", "Payment based on individual performance (0 = No, 1 = Yes)", "Change in salary (1=Decreased a lot 2= Decreased a little , 3= No change , 4= Increased a little , 5 = Increased a lot)", "State of relationship with colleagues (1 = Very low, 2 = Low, 3 = Moderate, 4 = High, 5 = Very high)", "Log of the salary", "Number of worked hours wanted per week")
+
+
+```
+
+We export the completed database
+
+```{r}
+write.csv(base_complete, file = "Bases/base_complete.csv", row.names = FALSE)
+```
+
+# III) Descriptive Statistics
+
+Some descriptive statistics
+
+## 1) Gender repartition
+
+```{r}
+##Library for graphs
+install.packages("ggplot2")
+library(ggplot2)
+##Continuous variable
+summary(base_complete$Age)
+summary(base_complete$Work_Hours)
+summary(base_complete$Hours_Wanted)
+summary(base_complete$Salary)
+summary(base_complete$Education)
+summary(base_complete$Mismatch_Hours)
+
+##Binary variable
+#Sex
+ggplot(base_complete, aes(x = factor(Sex, labels = c("Men", "Women")))) +
+  geom_bar(aes(y = ..prop.., group = 1), fill = c("blue","darkgreen")) +  
+  scale_y_continuous(labels = scales::percent_format()) +  
+  labs(title = "Gender repartition", x = "Gender", y = "Proportion") +
+  theme_minimal()
+
+
+
+table(base_complete$Full_Time)
+
+
+table(base_complete$Private)
+
+
+table(base_complete$Complex_Tasks)
+
+
+table(base_complete$Learning)
+
+
+##Categorical variable
+table(base_complete$Job_Satisfaction)
+
+
+table(base_complete$Career)
+
+```
+
+## 2) Gender distribution per career
+
+```{r}
+proportions <- base_complete %>%
+  group_by(Career, Sex) %>%
+  summarise(Count = n(), .groups = "drop") %>%
+  mutate(Proportion = Count / sum(Count))
+
+ggplot(proportions, aes(x = factor(Career), y = Proportion, fill = factor(Sex, labels = c("Men", "Women")))) +
+  geom_bar(stat = "identity", position = "dodge") +  
+  scale_y_continuous(labels = scales::percent) +
+  scale_fill_manual(values = c("Men" = "blue", "Women" = "darkgreen")) + 
+  labs(x = "Career categories", 
+       y = "Proportion", 
+       fill = "Sex",
+       title = "Gender distribution per career opportunities") +
+  theme_minimal()
+
+
+```
+
+## 3) Full_Time repartition
+
+```{r}
+ggplot(base_complete, aes(x = factor(Full_Time, labels = c("Part-Time", "Full-Time")))) +
+  geom_bar(fill = c("#F8766D", "#00BFC4")) + 
+  labs(title = "Full-Time vs Part-Time",
+       x = "Type",
+       y = "Number of worker") +
+  theme_minimal()
+```
+
+```{r}
+base_complete %>%
+  count(Full_Time) %>%
+  mutate(Proportion = n / sum(n)) %>%
+  ggplot(aes(x = factor(Full_Time, labels = c("Part-Time", "Full-Time")), y = Proportion, fill = factor(Full_Time))) +
+  geom_bar(stat = "identity") + 
+  scale_y_continuous(labels = scales::percent, limits = c(0, 1)) +
+  labs(title = "Full-Time vs Part-Time",
+       x = "Type",
+       y = "Percentage of workers") +
+  scale_fill_manual(values = c("#F8766D", "#00BFC4")) + 
+  theme_minimal() +
+  theme(axis.text.x = element_blank(), legend.position = "none")  
+
+
+```
+
+## 4) Full time repartition regarding gender
+
+```{r}
+library(ggplot2)
+library(dplyr)
+
+df_part_time <- base_complete %>%
+  filter(Full_Time == 0) %>%
+  group_by(Sex) %>%
+  summarise(count = n(), .groups = "drop") %>%
+  mutate(proportion = count / sum(count), 
+         Sex = factor(Sex, levels = c(0, 1), labels = c("Men", "Women")))  # Assure-toi de l'ordre
+
+ggplot(df_part_time, aes(x = "", y = proportion, fill = Sex)) +
+  geom_bar(stat = "identity", width = 1) +
+  coord_polar(theta = "y") +  # Transformation en diagramme circulaire
+  labs(title = "Gender Distribution for Part-Time Workers", fill = "Gender") +
+  theme_void() +  # Supprime les axes pour un rendu plus propre
+  scale_fill_manual(values = c("Women" = "darkgreen", "Men" = "black")) +
+  geom_text(aes(label = scales::percent(proportion)), position = position_stack(vjust = 0.5), color = "white")
+
+
+
+```
+
+# IV) Econometric
+
+## 1) Preparatory work
+
+We want to do an ordinate logit,so we will format each variable as factor or numerical
+
+```{r}
+base_complete$Age <- as.numeric(base_complete$Age)
+base_complete$Sex <- factor(base_complete$Sex)
+base_complete$Private <- factor(base_complete$Private)
+base_complete$Monotonous <- factor(base_complete$Monotonous)
+base_complete$Complex_Tasks <- factor(base_complete$Complex_Tasks)
+base_complete$Learning <- factor(base_complete$Learning)
+base_complete$Career <- factor(base_complete$Career)
+base_complete$Salary_log <- as.numeric(base_complete$Salary_log)
+base_complete$Work_Hours <- as.numeric(base_complete$Work_Hours)
+base_complete$Job_Satisfaction <- factor(base_complete$Job_Satisfaction, ordered = TRUE)
+base_complete$Full_Time <- as.numeric(as.character(base_complete$Full_Time))
+```
+
+## 2) First Model
+
+We run a first logit
+
+```{r}
+#We load the needed library
+install.packages("ordinal")
+library(ordinal)
+#We load the library for the tables
+install.packages("stargazer")
+library(stargazer)
+
+#Logit 
+
+model = clm(Job_Satisfaction ~ Sex + Age + Full_Time + Private + Monotonous + Complex_Tasks + Learning + Career+ Work_Hours  + Salary_log + Mismatch_hours, data = base_complete)
+
+summary(model)
+```
+
+Now we check if we met the needed hypothesis
+
+```{r}
+### Exogeneity
+#residuals_model_1<-residuals(model)
+#cor_matrix <- cor(cbind(residuals_model_1, base_complete[, c("Sex", "Age", "Full_Time", "Private","Monotonous", "Complex_Tasks", "Learning","Career", "Work_Hours", "Salary_log", "Mismatch_hours")]))
+#print(cor_matrix)
+#On check et on voit si on a des corrélations significatives 
+
+###Heteroscedasticity 
+
+###no multicolinearity
+# On vérifie avec un VIF mais il faut faire un modèle OLS pour ça 
+
+###idependent and identical distribution of the errors
+#residuals_model_2 <- residuals(model, type = "deviance")
+#dwtest(residuals_model_2 ~ 1)
+#On veut une p valeur > 0.05
+
+###sufficiency of the size
+#table(base_complete$Job_Satisfaction)
+#On compte le nombre d'observations par catégorie et on voit si c'est suffisant comparé à la taille de l'échantillon 
+```
+
+Then we check the robustness of our model through the $R^2$ of McFadden
+
+```{r}
+#We load the needed livbrary 
+install.packages("pscl")
+library(pscl)
+mcfadden_r2 <- pR2(model)
+
+```
+
+```{r}
+#We display the table showing the coefficients , the R^2 and all necessary information in a table called resultats_regressioin_logit
+
+stargazer(model, type = "html", out = "Tableaux/resultats_regression_logit.html",title = "Estimators for the logit ",add.lines = list(c(" McFadden R² ", round(mcfadden_r2["McFadden"], 4))))
+```
+
+## 3) Cross-effects
+
+We want to see what happens when we cross for certain variables
+
+### a) On the first model
+
+```{r}
+model_cross = clm(Job_Satisfaction ~ Age + Full_Time + Private + Monotonous + Complex_Tasks + Learning + Career+ Work_Hours + Mismatch_hours + Salary_log + Age * Full_Time + Age * Complex_Tasks + Private*Work_Hours + Complex_Tasks*Learning , data= base_complete)
+summary(model_cross)
+```
+
+We check the robustness for the model
+
+```{r}
+#McFadden R^2
+mcfadden_r2_cross <- pR2(model_cross)
+```
+
+```{r}
+#We display the table showing the coefficients , the R^2 and all necessary information in a table called resultats_regressioin_logit_cross
+
+stargazer(model_cross, type = "html", out = "Tableaux/resultats_regression_logit_cross.html",title = "Estimators for the logit with cross effects",add.lines = list(c("R² de McFadden", round(mcfadden_r2_cross["McFadden"], 4))))
+```
+
+We check the assumptions
+
+```{r}
+### Exogeneity
+#residuals_model_3<-residuals(model_cross)
+#cor_matrix_2 <- cor(cbind(residuals_model_3, base_complete[, c("Sex", "Age", "Full_Time", "Private","Monotonous", "Complex_Tasks", "Learning","Career", "Work_Hours", "Salary_log", "Mismatch_hours","Age * Complex_Tasks" , "Private*Work_Hours" , "Complex_Tasks*Learning")]))
+#print(cor_matrix_2)
+#On check et on voit si on a des corrélations significatives 
+
+###Heteroscedasticity 
+
+###no multicolinearity
+# On vérifie avec un VIF mais il faut faire un modèle OLS pour ça 
+###idependent and identical distribution of the errors
+#residuals_model_4 <- residuals(model_cross, type = "deviance")
+#dwtest(residuals_model_4 ~ 1)
+#On veut une p valeur > 0.05
+```
+
+### b) Sex
+
+We want to estimate the possible differences regarding gender
+
+```{r}
+model_cross_gender = clm(Job_Satisfaction ~ Age + Full_Time + Private + Monotonous + Complex_Tasks + Learning + Career+ Work_Hours  +Mismatch_hours+ Salary_log + Age * Full_Time + Age * Complex_Tasks + Private*Work_Hours +Age*Sex + Full_Time*Sex + Private*Sex + Monotonous*Sex + Complex_Tasks*Sex + Learning*Sex + Career*Sex+ Work_Hours*Sex  +Mismatch_hours*Sex + Salary_log*Sex, data= base_complete)
+
+summary(model_cross_gender)
+```
+
+We check the robustness for the model
+
+```{r}
+#McFadden R^2
+mcfadden_r2_cross_gender <- pR2(model_cross_gender)
+```
+
+```{r}
+#We display the table showing the coefficients , the R^2 and all necessary information in a table called resultats_regressioin_logit_cross_gender
+
+stargazer(model_cross_gender, type = "html", out = "Tableaux/resultats_regression_logit_cross_gender.html", title = "Estimators for the logitwith cross effects regarding gender",add.lines = list(c("R² de McFadden", round(mcfadden_r2_cross_gender["McFadden"], 4))))
+```
+
+We check the needed assumtions
+
+```{r}
+### Exogeneity
+#residuals_model_5<-residuals(model_cross_gender)
+#cor_matrix_3 <- cor(cbind(residuals_model_5, base_complete[, c("Age", "Full_Time", "Private", "Monotonous", "Complex_Tasks", "Learning", "Career", "Work_Hours", "Mismatch_hours", "Salary_log", "Age*Full_Time", "Age*Complex_Tasks", "Private*Work_Hours", "Age*Sex", "Full_Time*Sex", "Private*Sex", "Monotonous*Sex", "Complex_Tasks*Sex", "Learning*Sex", "Career*Sex", "Work_Hours*Sex", "Mismatch_hours*Sex", "Salary_log*Sex")]))
+#print(cor_matrix_3)
+#On check et on voit si on a des corrélations significatives 
+
+###Heteroscedasticity 
+
+###no multicolinearity
+# On vérifie avec un VIF mais il faut faire un modèle OLS pour ça 
+
+###idependent and identical distribution of the errors
+#residuals_model_6 <- residuals(model_cross_gender, type = "deviance")
+#dwtest(residuals_model_6 ~ 1)
+#On veut une p valeur > 0.05
+```
+
+## V) Matching
+
+We want to use the matching method on certain variables to see the effect of the modification of one variable on the job satisfaction ceteris paribus.
+
+```{r}
+#We load the needed library 
+install.packages("MatchIt")
+library(MatchIt)
+```
+
+#### a) Mismatch_Hours
+
+To calculate the propensity score we need to transform job satisfaction into a binary variable
+
+```{r}
+base_complete$Job_Satisfaction_Binary <- base_complete$Job_Satisfaction
+base_complete$Job_Satisfaction_Binary <- ifelse(base_complete$Job_Satisfaction_Binary %in% c(3, 4), 1, 0)
+```
+
+Now we can begin the matching
+
+```{r}
+#First we calculate the propensity score
+prop_score_dh <- matchit(Mismatch_hours ~ Sex + Age + Full_Time + Private + Work_Hours + Career + Monotonous + Complex_Tasks + Learning + Salary_log, data = base_complete, method = "nearest", distance = "logit")
+
+#Then we extract the propensity score for each variables ( distance, weight, subclass)
+prop_score_dh_i <- match.data(prop_score_dh)
+
+#Then we make sure that it has the right format
+prop_score_dh_i$Job_Satisfaction_Binary <- as.integer(as.character(prop_score_dh_i$Job_Satisfaction_Binary))
+
+#Finally we regress Job_Satisfaction on Diff_Hours from the prop_score dataset
+lm_dh <- lm(Job_Satisfaction_Binary ~ Mismatch_hours, data = prop_score_dh_i)
+summary(lm_dh)
+
+#We display the table showing the coefficients , the R^2 and all necessary information in a table called resultats_matching_Mismatch_Hours
+
+stargazer(lm_dh, 
+          type = "html", 
+          out = "Tableaux/resultats_matching_Mismatch_Hours.html",
+          title = "Matching for Mismatch hours",
+          label = "tab:matching_results",
+          ci = TRUE, 
+          single.row = TRUE, 
+          no.space = TRUE)  
+
+```
+
+#### b) Part_Time / Full_Time
+
+```{r}
+#Same method as with the variavle Mismatch_Hours
+prop_score_pt <- matchit(Full_Time ~ Sex + Age + Mismatch_hours + Private + Work_Hours + Career + Monotonous + Complex_Tasks + Learning + Salary_log,data = base_complete, method = "nearest", distance = "logit")
+
+prop_score_pt_i <- match.data(prop_score_pt)
+
+prop_score_pt_i$Job_Satisfaction_Binary <- as.integer(as.character(prop_score_pt_i$Job_Satisfaction_Binary))
+
+lm_pt <- lm(Job_Satisfaction_Binary ~ Full_Time, data = prop_score_pt_i)
+
+summary(lm_pt)
+
+#We display the table showing the coefficients , the R^2 and all necessary information in a table called resultats_matching_Part_Time
+
+stargazer(lm_pt, 
+          type = "html", 
+          out = "Tableaux/resultats_matching_Part_Time.html",
+          title = "Matching for Part Time / Full Time",
+          label = "tab:matching_results",
+          ci = TRUE, 
+          single.row = TRUE, 
+          no.space = TRUE)  
+```
+
+## VI) JDI
+
+### 1) Import
+
+We want to compare our "index" with the JDI one
+
+```{r}
+
+#Then let us identify each variable to each dimension and compute the sum 
+
+Pay <-base_complete$Appropriately_Paid + base_complete$Payment_Individual
+
+Job_Opportunities <- as.numeric(base_complete$Career) + base_complete$Promo
+
+Supervision <- base_complete$Support_Manager + base_complete$Competent_Sup + base_complete$Sup_Useful_Comp 
+
+Coworkers <- base_complete$Support_Colleagues + base_complete$Relation + base_complete$Cooperation_Colleagues
+
+Work <- as.numeric(base_complete$Monotonous) + base_complete$Useful_Work
+
+#We create new variables
+base_complete$Pay <- Pay
+label(base_complete$Pay) <- "First dimension of the JDI"
+
+base_complete$Job_Opportunities <- Job_Opportunities
+label(base_complete$Job_Opportunities) <- "Second dimension of the JDI"
+
+base_complete$Supervision <- Supervision
+label(base_complete$Supervision) <- "Third dimension of the JDI"
+
+base_complete$Coworkers <- Coworkers
+label(base_complete$Coworkers) <- "Fourth dimension of the JDI"
+
+base_complete$Work <- Work
+label(base_complete$Work) <- "Fifth dimension of the JDI"
+
+```
+
+### 2) Weight estimation
+
+We regress the dimensions on the job satisfaction to estimate the different weights
+
+```{r}
+#We do an OLS without intercept
+model_JDI<-lm(as.numeric(Job_Satisfaction)~  Pay+Job_Opportunities + Supervision + Coworkers + Work , data=base_complete)
+summary(model_JDI)
+
+#We want to stock the " weights" in a vector
+weights_JDI<-model_JDI$coefficients
+weights_JDI
+
+#We display the table showing the coefficients , the R^2 and all necessary information in a table called resultats_regressioin_JDI
+
+stargazer(model_JDI, type = "html", out = "Tableaux/resultats_regression_JDI.html",title = "Estimation for the 'weights' composing JDI")
+```
+
+VIF test
+
+```{r}
+library(car)
+print(vif(model_JDI))
+```
+
+Assumptions
+
+```{r}
+### autocorrélation of the residuals
+install.packages("lmtest")
+library(lmtest)
+dwtest(model_JDI)
+
+### Homoskedasticity
+install.packages("lmtest")
+library(lmtest)
+bptest(model_JDI)
+
+### Multicolonearity
+vif(model_JDI)
+
+### Exogeneity
+residuals_JDI <- residuals(model_JDI)
+cor(residuals_JDI, base_complete[, c("Pay", "Job_Opportunities", "Supervision", "Coworkers", "Work")])
+
+
+### Normal errors
+hist(residuals_JDI, main = "Histogramme des résidus", xlab = "Résidus", col = "lightblue", breaks = 30)
+shapiro.test(sample(residuals_JDI, 5000))
+
+```
+
+## VII) Regression including JDI
+
+### 1) Computations
+
+Now we can implement the JDI
+
+```{r}
+##We add the column JDI that will caclculate the JDI for each individual
+#We already calculated the "weights" above so we only need to create a new column in base_complete with the values 
+base_complete$JDI <- model_JDI$coefficients["Pay"]*base_complete$Pay +  model_JDI$coefficients["Job_Opportunities"]*base_complete$Job_Opportunities + model_JDI$coefficients["Supervision"]*base_complete$Supervision + model_JDI$coefficients["Coworkers"]*base_complete$Coworkers + model_JDI$coefficients["Work"]*base_complete$Work
+```
+
+### 2) Logit with JDI
+
+```{r}
+#Logit
+model_reg_JDI = clm(Job_Satisfaction ~ Sex + Age + Full_Time + Private + Monotonous + Complex_Tasks + Learning + Career+ Work_Hours  + Salary_log + Mismatch_hours + JDI, data = base_complete)
+
+summary(model_reg_JDI)
+
+mcfadden_r2_JDI <- pR2(model_reg_JDI)
+
+#We display the table showing the coefficients , the R^2 and all necessary information in a table called resultats_regressioin_logit_JDI 
+
+stargazer(model_reg_JDI, type = "html", out = "Tableaux/resultats_regression_logit_JDI.html",title = "Estimators for the LOGIT including the JDI",add.lines=list(c("McFadden R²",round(mcfadden_r2_JDI["McFadden"],4))))
+
+```
+
+We check the assumptions
+
+```{r}
+### Exogeneity
+#residuals_model_7<-residuals(model_reg_JDI)
+#cor_matrix_5 <- cor(cbind(residuals_model_7, base_complete[,  c("Sex", "Age", "Full_Time", "Private","Monotonous", "Complex_Tasks", "Learning","Career", "Work_Hours", "Salary_log", "Mismatch_hours","JDI")]))
+#print(cor_matrix_5)
+#On check et on voit si on a des corrélations significatives 
+
+###Heteroscedasticity 
+
+###no multicolinearity
+# On vérifie avec un VIF mais il faut faire un modèle OLS pour ça 
+
+###idependent and identical distribution of the errors
+#residuals_model_8 <- residuals(model_reg_JDI, type = "deviance")
+#dwtest(residuals_model_8 ~ 1)
+#On veut une p valeur > 0.05
+```
+
+```{r}
+sink()
+```
